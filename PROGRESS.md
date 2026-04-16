@@ -1,14 +1,14 @@
 # SonicStore — Progress Tracker
-**Last updated:** 2026-04-16  
+**Last updated:** 2026-04-17  
 **Updated by:** Quincy (Technical Director)
 
 ---
 
 ## Current State
 
-**Active slice:** None (ready for S05)  
-**Tests:** 39/39 passing  
-**Schedule:** 4 days ahead of Week 1 target
+**Active slice:** None (ready for S07)  
+**Tests:** 51/51 passing  
+**Schedule:** ~10 days ahead (S06 done; roadmap had S06 finishing April 26)
 
 ## Slice Status
 
@@ -17,10 +17,10 @@
 | S01 | Project Scaffolding | DONE | manual |
 | S02 | Feature Engine | DONE | 11 passing |
 | S03 | Prompt Builder | DONE | 15 passing |
-| S04 | Store Layer | DONE | 11 passing (unit), 2 skipped (integration/Redis) |
-| S05 | REST API | **NEXT** | — |
-| S06 | WebSocket Server | queued | — |
-| S07 | Web UI | queued | — |
+| S04 | Store Layer | DONE | 11 passing (unit) |
+| S05 | REST API | DONE | 8 passing |
+| S06 | WebSocket Server | DONE | 4 passing |
+| S07 | Web UI | **NEXT** | — |
 | S08 | Mic Ingestion | queued | — |
 | S09 | Mic Loop | queued | — |
 | S10 | Generation Engine | queued | — |
@@ -28,18 +28,19 @@
 
 ## What's Next
 
-**S05: REST API** — Implement `POST /analyze`, `GET /features/latest`, `GET /features/history`. Requires implementing `src/ingestion/file.py` (load_and_chunk). Wire up `src/api/app.py`, `routes_analyze.py`, `routes_features.py`. Write 8 API tests per roadmap spec.
+**S07: Web UI** — Single HTML/JS/CSS dashboard with Canvas-based waveform, chroma heatmap, feature gauges, and audio playback. No build step — served as static files by FastAPI. Manual testing only (no pytest for UI). See roadmap S07 for full spec.
 
-Dependencies satisfied: feature engine (S02), store (S04) are both done.
+**S08: Mic Ingestion** — Can be done in parallel with S07 (no shared dependencies). `MicIngestion` class with sounddevice callback and ring buffer.
 
 ## Known Issues
 
-- Store method names vary across spec docs (architecture says `write_latest`/`read_latest`, code uses `write`/`get_latest`). Code is the source of truth.
-- Roadmap weekly calendar has minor date misalignments (cosmetic, doesn't affect slice ordering).
-- librosa warnings on short FFT windows with synthetic test audio — harmless.
+- Store method names vary across spec docs (code is source of truth: `write`, `get_latest`, `get_history`)
+- librosa deprecation warnings on Python 3.12 (audioop, sunau) — harmless, fixed in librosa 1.0
+- `python-multipart` and `redis` must be installed for full test suite (not in default system packages)
 
 ## Session Log
 
 | Date | Session | Work Done |
 |------|---------|-----------|
-| 2026-04-16 | Initial build | Decisions locked, architecture + roadmap written, S01-S04 implemented, spec review passed |
+| 2026-04-16 | Initial build | Decisions locked, architecture + roadmap, S01-S04 implemented, spec review |
+| 2026-04-17 | API + WebSocket | CLAUDE.md + PROGRESS.md added, S05 (REST API) + S06 (WebSocket) implemented |
