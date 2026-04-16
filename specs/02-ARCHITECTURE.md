@@ -413,8 +413,8 @@ interface FeatureVector {
 ```
 
 **Normalization conventions:**
-- `rms_energy`: `min-max` normalized against a rolling 60-second window. Raw value is in range 0–0.3 typically; displayed as 0–1.
-- `onset_strength`: same rolling normalization.
+- `rms_energy`: fixed-divisor normalization (raw / 0.3, clamped to [0, 1]). Simpler and more predictable than rolling windows for a demo. Raw value is in range 0–0.3 typically; displayed as 0–1.
+- `onset_strength`: fixed-divisor normalization (raw / 10.0, clamped to [0, 1]). Same rationale.
 - `chroma`: librosa outputs 0–1 already; no normalization needed.
 - `mel_spectrogram`: power-to-dB (`librosa.power_to_db`) then normalized to 0–1 per frame for display.
 

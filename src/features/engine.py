@@ -41,7 +41,8 @@ def extract_features(
 
     # --- BPM ---
     tempo, _ = librosa.beat.beat_track(y=audio, sr=sr)
-    bpm = float(tempo)
+    # librosa 0.10.x may return ndarray; safely extract scalar
+    bpm = float(np.atleast_1d(tempo)[0])
 
     # --- key (Krumhansl-Schmuckler) ---
     chroma_arr = np.array(chroma, dtype=np.float32)
