@@ -1,26 +1,29 @@
-"""GET /features/* endpoints: latest, history, and stream-trigger."""
+"""GET /features/* endpoints: latest and history."""
 
-from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, HTTPException, Query, Request
 
 router = APIRouter()
 
 
 @router.get("/features/latest")
-async def get_latest() -> JSONResponse:
+async def get_latest(request: Request) -> dict:
     """Return the most recently extracted FeatureVector, or 404 if none yet."""
-    raise NotImplementedError
+    from src.api.app import get_app_store
+    store = get_app_store(request)
+
+    result = store.get_latest()
+    if result is None:
+        raise HTTPException(status_code=404, detail="No features extracted yet")
+    return result
 
 
 @router.get("/features/history")
-async def get_history(limit: int = Query(default=30, ge=1, le=30)) -> JSONResponse:
-    """Return up to limit FeatureVector entries, newest first. Empty array if no history."""
-    raise NotImplementedError
+async def get_history(
+    request: Request,
+    limit: int = Query(default=30, ge=1, le=30),
+) -> list:
+    """Return up to limit FeatureVector entries, newest first."""
+    from src.api.app import get_app_store
+    store = get_app_store(request)
 
-
-@router.get("/features/stream-trigger")
-async def set_stream_trigger(
-    interval: float = Query(default=1.0, ge=0.1)
-) -> JSONResponse:
-    """Set the generation trigger interval on the GenerationEngine."""
-    raise NotImplementedError
+    return store.get_history(limit=limit)
