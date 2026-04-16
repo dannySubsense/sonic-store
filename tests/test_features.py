@@ -108,3 +108,39 @@ def test_440hz_chroma_peak_near_A(sine_440: np.ndarray) -> None:
     assert abs(dominant_pitch - 9) <= 1 or dominant_pitch in (9,), (
         f"440Hz should peak near pitch class 9 (A), got {dominant_pitch}"
     )
+
+
+def test_silence_rms_energy_and_waveform_display() -> None:
+    """Silence: rms_energy < 0.05 and waveform_display has exactly 2048 points."""
+    silence = np.zeros(CHUNK_SAMPLES, dtype=np.float32)
+    result = extract_features(silence, sr=SAMPLE_RATE)
+    assert result["rms_energy"] < 0.05, (
+        f"Silence rms_energy should be < 0.05, got {result['rms_energy']}"
+    )
+    assert len(result["waveform_display"]) == 2048, (
+        f"waveform_display should be 2048 points, got {len(result['waveform_display'])}"
+    )
+
+
+def test_chirp_spectral_centroid_above_800hz() -> None:
+    """Chirp (200-2000 Hz sweep): spectral_centroid_hz should exceed 800 Hz."""
+    t = np.arange(CHUNK_SAMPLES, dtype=np.float32) / SAMPLE_RATE
+    f0, f1 = 200.0, 2000.0
+    chirp = np.sin(2 * np.pi * (f0 * t + (f1 - f0) / (2 * 2.0) * t**2)).astype(np.float32)
+    result = extract_features(chirp, sr=SAMPLE_RATE)
+    sc = result["spectral_centroid_hz"]
+    assert sc > 800.0, (
+        f"Chirp spectral_centroid_hz should be > 800 Hz (broad-spectrum signal), got {sc}"
+    )
+
+
+def test_extraction_wall_time_under_2_seconds(sine_440: np.ndarray) -> None:
+    """Feature extraction on the sine fixture must complete in under 2 seconds."""
+    import time
+    start = time.time()
+    extract_features(sine_440, sr=SAMPLE_RATE)
+    elapsed = time.time() - start
+    print(f"\nextract_features wall time: {elapsed:.3f}s")
+    assert elapsed < 2.0, (
+        f"extract_features took {elapsed:.3f}s, must be < 2.0s"
+    )

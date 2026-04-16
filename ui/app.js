@@ -8,13 +8,16 @@ let reconnectDelay = 2000;
 let audioCtx = null;
 let currentSource = null;
 let currentAudioB64 = null;
+let statusPollTimer = null;
 
 // --- DOM refs ---
 const statusEl = document.getElementById('status');
 const btnStart = document.getElementById('btn-start');
 const btnStop = document.getElementById('btn-stop');
+const btnDemo = document.getElementById('btn-demo');
 const btnPlay = document.getElementById('btn-play');
 const errorBanner = document.getElementById('error-banner');
+const modelBanner = document.getElementById('model-banner');
 const valBpm = document.getElementById('val-bpm');
 const valKey = document.getElementById('val-key');
 const valEnergy = document.getElementById('val-energy');
@@ -39,6 +42,7 @@ function connectWebSocket() {
     statusEl.textContent = 'Connected';
     statusEl.className = 'connected';
     reconnectDelay = 2000;
+    pollStatus();
   };
 
   ws.onclose = () => {
@@ -72,6 +76,32 @@ function connectWebSocket() {
       console.error('Failed to parse WebSocket message:', e);
     }
   };
+}
+
+// --- Status polling ---
+
+function pollStatus() {
+  if (statusPollTimer) clearInterval(statusPollTimer);
+
+  function checkStatus() {
+    fetch('/status')
+      .then(r => r.json())
+      .then(data => {
+        if (data.model_loaded) {
+          modelBanner.classList.add('hidden');
+          if (statusPollTimer) {
+            clearInterval(statusPollTimer);
+            statusPollTimer = null;
+          }
+        } else {
+          modelBanner.classList.remove('hidden');
+        }
+      })
+      .catch(() => {});
+  }
+
+  checkStatus();
+  statusPollTimer = setInterval(checkStatus, 3000);
 }
 
 // --- Feature handling ---
@@ -226,6 +256,28 @@ btnStop.addEventListener('click', () => {
     btnStart.disabled = false;
     btnStop.disabled = true;
   }
+});
+
+btnDemo.addEventListener('click', () => {
+  btnDemo.disabled = true;
+  btnDemo.textContent = 'Loading...';
+  fetch('/demo/start', { method: 'POST' })
+    .then(r => {
+      if (!r.ok) return r.json().then(d => { throw new Error(d.detail || 'Demo failed'); });
+      return r.json();
+    })
+    .then(data => {
+      btnDemo.textContent = `Demo (${data.files_processed} files)`;
+      setTimeout(() => {
+        btnDemo.textContent = 'Demo';
+        btnDemo.disabled = false;
+      }, 2000);
+    })
+    .catch(err => {
+      handleErrorMessage({ code: 'demo_error', message: err.message });
+      btnDemo.textContent = 'Demo';
+      btnDemo.disabled = false;
+    });
 });
 
 btnPlay.addEventListener('click', playGeneratedAudio);

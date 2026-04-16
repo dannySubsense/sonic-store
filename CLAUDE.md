@@ -73,10 +73,10 @@ Roadmap: `specs/03-ROADMAP.md`. Slices are ordered by dependency.
 | S07 Web UI | DONE | ui/ directory |
 | S08 Mic Ingestion | DONE | src/ingestion/mic.py |
 | S09 Mic Loop | DONE | wires S06+S08 in app.py |
-| S10 Generation Engine | STUB | src/generation/engine.py |
-| S11 Polish | NOT STARTED | error handling, demo mode |
+| S10 Generation Engine | DONE | src/generation/engine.py |
+| S11 Polish | DONE | GET /status, POST /demo/start, UI model banner |
 
-"DONE" = fully implemented with passing tests. "STUB" = correct signatures and imports, body raises `NotImplementedError`.
+"DONE" = fully implemented with passing tests. All 11 slices complete. 57 tests passing.
 
 ## Store Method Names
 

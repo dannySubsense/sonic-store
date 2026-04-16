@@ -122,3 +122,26 @@ def test_complementary_phrase_in_prompt() -> None:
     fv = make_feature_vector()
     result = build_prompt(fv)
     assert "complementary" in result
+
+
+# --- BPM boundary tests ---
+# _tempo_descriptor boundaries: slow(<70), moderate tempo(70-99), upbeat(100-129), fast(>=130)
+
+def test_bpm_boundary_100_is_upbeat() -> None:
+    # Boundary: 100 <= bpm < 130 maps to "upbeat" (not "moderate tempo")
+    fv = make_feature_vector(bpm=100.0)
+    result = build_prompt(fv)
+    assert "upbeat" in result
+
+
+def test_bpm_boundary_130_is_fast() -> None:
+    # Boundary: bpm >= 130 maps to "fast" (not "upbeat")
+    fv = make_feature_vector(bpm=130.0)
+    result = build_prompt(fv)
+    assert "fast" in result
+
+
+def test_prompt_ends_with_instrumental() -> None:
+    fv = make_feature_vector()
+    result = build_prompt(fv)
+    assert result.endswith("instrumental")

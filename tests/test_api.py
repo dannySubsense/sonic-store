@@ -73,6 +73,17 @@ async def test_post_analyze_text_file_returns_422() -> None:
 
 
 @pytest.mark.asyncio
+async def test_post_analyze_short_audio_returns_422(short_wav: bytes) -> None:
+    """Audio shorter than 0.5s is rejected with 422 (load_and_chunk raises ValueError)."""
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post(
+            "/analyze",
+            files={"file": ("short.wav", short_wav, "audio/wav")},
+        )
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_get_latest_before_any_post_returns_404() -> None:
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.get("/features/latest")
