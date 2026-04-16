@@ -6,9 +6,9 @@
 
 ## Current State
 
-**Active slice:** None (ready for S07)  
+**Active slice:** None (ready for S10)  
 **Tests:** 51/51 passing  
-**Schedule:** ~10 days ahead (S06 done; roadmap had S06 finishing April 26)
+**Schedule:** ~3 weeks ahead (S09 done; roadmap had S09 finishing May 6)
 
 ## Slice Status
 
@@ -20,27 +20,28 @@
 | S04 | Store Layer | DONE | 11 passing (unit) |
 | S05 | REST API | DONE | 8 passing |
 | S06 | WebSocket Server | DONE | 4 passing |
-| S07 | Web UI | **NEXT** | — |
-| S08 | Mic Ingestion | queued | — |
-| S09 | Mic Loop | queued | — |
-| S10 | Generation Engine | queued | — |
+| S07 | Web UI | DONE | manual |
+| S08 | Mic Ingestion | DONE | manual (scripts/test_mic_capture.py) |
+| S09 | Mic Loop | DONE | manual |
+| S10 | Generation Engine | **NEXT** | — |
 | S11 | Polish + Demo Mode | queued | — |
 
 ## What's Next
 
-**S07: Web UI** — Single HTML/JS/CSS dashboard with Canvas-based waveform, chroma heatmap, feature gauges, and audio playback. No build step — served as static files by FastAPI. Manual testing only (no pytest for UI). See roadmap S07 for full spec.
+**S10: Generation Engine** — MusicGen-Small integration in background thread. Lazy model loading, feature-to-prompt-to-audio pipeline, base64 WAV encoding, GenerationMessage broadcast. Requires `audiocraft` and `torch` installed. Mocked tests run anywhere; real inference needs GPU (RTX 5090 on ROG Strix).
 
-**S08: Mic Ingestion** — Can be done in parallel with S07 (no shared dependencies). `MicIngestion` class with sounddevice callback and ring buffer.
+See `specs/03-ROADMAP.md` S10 section for full spec.
 
 ## Known Issues
 
-- Store method names vary across spec docs (code is source of truth: `write`, `get_latest`, `get_history`)
-- librosa deprecation warnings on Python 3.12 (audioop, sunau) — harmless, fixed in librosa 1.0
-- `python-multipart` and `redis` must be installed for full test suite (not in default system packages)
+- PortAudio not available on dev machine (headless Linux VM) — mic import is lazy to handle this
+- `audiocraft` and `torch` not installed on dev machine — S10 mocked tests will work, real inference won't
+- Demo hardware: ASUS ROG Strix SCAR 18 (RTX 5090) — real testing needs to happen there
+- Store method naming inconsistency in spec docs (code is source of truth)
 
 ## Session Log
 
 | Date | Session | Work Done |
 |------|---------|-----------|
-| 2026-04-16 | Initial build | Decisions locked, architecture + roadmap, S01-S04 implemented, spec review |
-| 2026-04-17 | API + WebSocket | CLAUDE.md + PROGRESS.md added, S05 (REST API) + S06 (WebSocket) implemented |
+| 2026-04-16 | Initial build | Decisions locked, architecture + roadmap, S01-S04, spec review |
+| 2026-04-17 | API through Mic | CLAUDE.md, PROGRESS.md, S05-S09 implemented. 51/51 tests. |
