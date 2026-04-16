@@ -68,11 +68,11 @@ Roadmap: `specs/03-ROADMAP.md`. Slices are ordered by dependency.
 | S02 Feature Engine | DONE | src/features/engine.py, key_detection.py |
 | S03 Prompt Builder | DONE | src/generation/prompt.py |
 | S04 Store Layer | DONE | src/store/dict_store.py, redis_store.py |
-| S05 REST API | STUB | src/api/routes_analyze.py, routes_features.py |
-| S06 WebSocket | STUB | src/api/websocket.py, app.py |
-| S07 Web UI | NOT STARTED | ui/ directory |
-| S08 Mic Ingestion | STUB | src/ingestion/mic.py |
-| S09 Mic Loop | NOT STARTED | wires S06+S08 in app.py |
+| S05 REST API | DONE | src/api/routes_analyze.py, routes_features.py |
+| S06 WebSocket | DONE | src/api/websocket.py, app.py |
+| S07 Web UI | DONE | ui/ directory |
+| S08 Mic Ingestion | DONE | src/ingestion/mic.py |
+| S09 Mic Loop | DONE | wires S06+S08 in app.py |
 | S10 Generation Engine | STUB | src/generation/engine.py |
 | S11 Polish | NOT STARTED | error handling, demo mode |
 
