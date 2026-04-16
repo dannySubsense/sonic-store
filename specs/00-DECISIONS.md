@@ -1,7 +1,7 @@
 # SonicStore Decision Memo
 **Date:** 2026-04-16
 **Author:** Technical Director
-**Status:** DRAFT — Awaiting Composer approval
+**Status:** LOCKED — All four decisions approved by Composer (2026-04-16)
 
 ---
 
@@ -27,7 +27,7 @@ The hackathon is June 6-7. That's 51 days. These decisions unblock architecture,
 
 **What we give up:** Live instrument feel. A musician can't jam with SonicStore at <2s latency — they can converse with it. That's good enough for June 7. It's not good enough for the Agentic Prosthetic vision, but that's a later problem.
 
-**[ ] APPROVED** / **[ ] OVERRIDE** — Danny's call
+**[X] APPROVED** / **[ ] OVERRIDE** — Danny's call
 
 ---
 
@@ -59,7 +59,7 @@ That demo contains the DNA of every thread:
 
 **What we give up:** The full prosthetic vision. Multi-model entanglement. SonicStore's own "intuition." Body-knowledge interfaces. These are powerful ideas that belong in a research paper or a 2027 roadmap, not a 48-hour prototype.
 
-**[ ] APPROVED** / **[ ] OVERRIDE** — Danny's call
+**[X] APPROVED** / **[ ] OVERRIDE** — Danny's call
 
 ---
 
@@ -77,7 +77,7 @@ That demo contains the DNA of every thread:
 
 **What we give up:** The philosophical purity of "ungovernable by design." The competitive moat of "no one can acquire this." Both are premature optimizations. You don't need anti-acquisition positioning when you don't have a product.
 
-**[ ] APPROVED** / **[ ] OVERRIDE** — Danny's call
+**[X] APPROVED** / **[ ] OVERRIDE** — Danny's call
 
 ---
 
@@ -95,7 +95,7 @@ That demo contains the DNA of every thread:
 
 **What we give up:** Access to cutting-edge unpublished models. Early-mover advantage on operationalizing ISMIR research. Both require a product to exist first.
 
-**[ ] APPROVED** / **[ ] OVERRIDE** — Danny's call
+**[X] APPROVED** / **[ ] OVERRIDE** — Danny's call
 
 ---
 
