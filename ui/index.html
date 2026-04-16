@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SonicStore</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>SonicStore</h1>
+    <div id="controls">
+      <button id="btn-start">Start</button>
+      <button id="btn-stop" disabled>Stop</button>
+      <span id="status">Disconnected</span>
+    </div>
+  </header>
+
+  <div id="error-banner" class="hidden"></div>
+
+  <main>
+    <section id="panel-visual">
+      <div id="waveform-container">
+        <h3>Waveform</h3>
+        <canvas id="canvas-waveform" width="600" height="120"></canvas>
+      </div>
+      <div id="feature-dashboard">
+        <h3>Features</h3>
+        <div class="feature-row">
+          <span class="feature-label">BPM</span>
+          <span id="val-bpm" class="feature-value">--</span>
+        </div>
+        <div class="feature-row">
+          <span class="feature-label">Key</span>
+          <span id="val-key" class="feature-value">--</span>
+        </div>
+        <div class="feature-row">
+          <span class="feature-label">Energy</span>
+          <div id="bar-energy"><div id="bar-fill"></div></div>
+          <span id="val-energy" class="feature-value">--</span>
+        </div>
+        <div class="feature-row">
+          <span class="feature-label">Spectral</span>
+          <span id="val-spectral" class="feature-value">-- Hz</span>
+        </div>
+        <div class="feature-row">
+          <span class="feature-label">Onset</span>
+          <span id="val-onset" class="feature-value">--</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-chroma">
+      <h3>Chroma Heatmap</h3>
+      <div id="chroma-labels">
+        <span>B</span><span>A#</span><span>A</span><span>G#</span>
+        <span>G</span><span>F#</span><span>F</span><span>E</span>
+        <span>D#</span><span>D</span><span>C#</span><span>C</span>
+      </div>
+      <canvas id="canvas-chroma" width="600" height="240"></canvas>
+    </section>
+
+    <section id="panel-ai">
+      <h3>AI Response</h3>
+      <div id="ai-prompt">Waiting for generation...</div>
+      <div id="ai-controls">
+        <button id="btn-play" disabled>Play Generated Clip</button>
+        <span id="gen-time"></span>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

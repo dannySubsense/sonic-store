@@ -5,12 +5,17 @@ import os
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
+from pathlib import Path
+
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi.staticfiles import StaticFiles
 
 from src.api.routes_analyze import router as analyze_router
 from src.api.routes_features import router as features_router
 from src.api.websocket import ConnectionManager
 from src.store import get_store
+
+UI_DIR = Path(__file__).resolve().parent.parent.parent / "ui"
 
 
 manager = ConnectionManager()
@@ -27,6 +32,9 @@ app = FastAPI(title="SonicStore", version="1.0.0", lifespan=lifespan)
 
 app.include_router(analyze_router)
 app.include_router(features_router)
+
+if UI_DIR.is_dir():
+    app.mount("/ui", StaticFiles(directory=str(UI_DIR), html=True), name="ui")
 
 
 def get_app_store(request: Request):
