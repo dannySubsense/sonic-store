@@ -144,3 +144,204 @@ def test_extraction_wall_time_under_2_seconds(sine_440: np.ndarray) -> None:
     assert elapsed < 2.0, (
         f"extract_features took {elapsed:.3f}s, must be < 2.0s"
     )
+
+
+# ---------------------------------------------------------------------------
+# H1.S02 — Layer 1 Widening tests (12 new tests; AC-01, AC-09)
+# ---------------------------------------------------------------------------
+
+NEW_LAYER1_KEYS = [
+    "spectral_rolloff_hz",
+    "spectral_flux",
+    "spectral_contrast",
+    "zero_crossing_rate",
+    "mfcc",
+    "harmonic_ratio",
+    "tonnetz",
+]
+
+V1_KEYS = [
+    "timestamp",
+    "chunk_index",
+    "source",
+    "duration_seconds",
+    "chroma",
+    "bpm",
+    "key_pitch_class",
+    "key_mode",
+    "rms_energy",
+    "spectral_centroid_hz",
+    "onset_strength",
+    "mel_spectrogram",
+    "waveform_display",
+]
+
+
+def test_layer1_new_keys_present(sine_440: np.ndarray) -> None:
+    """AC-01: All 7 new Layer 1 keys must be present in the returned dict."""
+    fv = extract_features(sine_440, sr=SAMPLE_RATE)
+    for key in NEW_LAYER1_KEYS:
+        assert key in fv, f"Expected key '{key}' missing from FeatureVector"
+
+
+def test_spectral_rolloff_hz_range(sine_440: np.ndarray) -> None:
+    """AC-01: spectral_rolloff_hz is a float in the range (0.0, 11025.0]."""
+    fv = extract_features(sine_440, sr=SAMPLE_RATE)
+    val = fv["spectral_rolloff_hz"]
+    assert isinstance(val, float), f"spectral_rolloff_hz must be float, got {type(val)}"
+    assert val > 0.0, f"spectral_rolloff_hz must be > 0.0, got {val}"
+    assert val <= 11025.0, f"spectral_rolloff_hz must be <= 11025.0 (sr/2), got {val}"
+
+
+def test_spectral_flux_range(sine_440: np.ndarray) -> None:
+    """AC-01: spectral_flux is a float in [0.0, 1.0]."""
+    fv = extract_features(sine_440, sr=SAMPLE_RATE)
+    val = fv["spectral_flux"]
+    assert isinstance(val, float), f"spectral_flux must be float, got {type(val)}"
+    assert val >= 0.0, f"spectral_flux must be >= 0.0, got {val}"
+    assert val <= 1.0, f"spectral_flux must be <= 1.0, got {val}"
+
+
+def test_spectral_contrast_shape(sine_440: np.ndarray) -> None:
+    """AC-01: spectral_contrast is a list of exactly 7 floats."""
+    fv = extract_features(sine_440, sr=SAMPLE_RATE)
+    val = fv["spectral_contrast"]
+    assert isinstance(val, list), f"spectral_contrast must be list, got {type(val)}"
+    assert len(val) == 7, f"spectral_contrast must have 7 elements, got {len(val)}"
+    assert all(isinstance(x, float) for x in val), (
+        f"spectral_contrast elements must all be float, got types: {[type(x) for x in val]}"
+    )
+
+
+def test_spectral_contrast_finite() -> None:
+    """AC-01 / OQ-PLAN-02: spectral_contrast contains no NaN or Inf across silence, sine, noise."""
+    silence = np.zeros(CHUNK_SAMPLES, dtype=np.float32)
+    sine = make_sine(440.0)
+    noise = np.random.RandomState(42).randn(CHUNK_SAMPLES).astype(np.float32) * 0.1
+
+    for label, audio in [("silence", silence), ("sine", sine), ("noise", noise)]:
+        fv = extract_features(audio, sr=SAMPLE_RATE)
+        contrast = fv["spectral_contrast"]
+        assert all(np.isfinite(x) for x in contrast), (
+            f"spectral_contrast contains NaN/Inf for {label} fixture: {contrast}"
+        )
+
+
+def test_zero_crossing_rate_range(sine_440: np.ndarray) -> None:
+    """AC-01: zero_crossing_rate is a float in [0.0, 1.0]."""
+    fv = extract_features(sine_440, sr=SAMPLE_RATE)
+    val = fv["zero_crossing_rate"]
+    assert isinstance(val, float), f"zero_crossing_rate must be float, got {type(val)}"
+    assert val >= 0.0, f"zero_crossing_rate must be >= 0.0, got {val}"
+    assert val <= 1.0, f"zero_crossing_rate must be <= 1.0, got {val}"
+
+
+def test_mfcc_shape(sine_440: np.ndarray) -> None:
+    """AC-01: mfcc is a list of exactly 13 floats."""
+    fv = extract_features(sine_440, sr=SAMPLE_RATE)
+    val = fv["mfcc"]
+    assert isinstance(val, list), f"mfcc must be list, got {type(val)}"
+    assert len(val) == 13, f"mfcc must have 13 elements, got {len(val)}"
+    assert all(isinstance(x, float) for x in val), (
+        f"mfcc elements must all be float, got types: {[type(x) for x in val]}"
+    )
+
+
+def test_harmonic_ratio_range(sine_440: np.ndarray) -> None:
+    """AC-01: harmonic_ratio is a float in [0.0, 1.0]."""
+    fv = extract_features(sine_440, sr=SAMPLE_RATE)
+    val = fv["harmonic_ratio"]
+    assert isinstance(val, float), f"harmonic_ratio must be float, got {type(val)}"
+    assert val >= 0.0, f"harmonic_ratio must be >= 0.0, got {val}"
+    assert val <= 1.0, f"harmonic_ratio must be <= 1.0, got {val}"
+
+
+def test_tonnetz_shape(sine_440: np.ndarray) -> None:
+    """AC-01: tonnetz is a list of exactly 6 floats."""
+    fv = extract_features(sine_440, sr=SAMPLE_RATE)
+    val = fv["tonnetz"]
+    assert isinstance(val, list), f"tonnetz must be list, got {type(val)}"
+    assert len(val) == 6, f"tonnetz must have 6 elements, got {len(val)}"
+    assert all(isinstance(x, float) for x in val), (
+        f"tonnetz elements must all be float, got types: {[type(x) for x in val]}"
+    )
+
+
+def test_silence_sentinel_values() -> None:
+    """Edge case: silence (all zeros) returns sentinel values without raising.
+
+    harmonic_ratio == 0.5 (guard branch for zero total energy),
+    tonnetz == [0.0]*6 (NaN/Inf guard on silent HPSS output),
+    spectral_flux == 0.0 (no frame-to-frame change on silence).
+    """
+    silence = np.zeros(CHUNK_SAMPLES, dtype=np.float32)
+    fv = extract_features(silence, sr=SAMPLE_RATE)
+
+    assert fv["harmonic_ratio"] == 0.5, (
+        f"harmonic_ratio sentinel for silence must be 0.5, got {fv['harmonic_ratio']}"
+    )
+    assert fv["tonnetz"] == [0.0] * 6, (
+        f"tonnetz for silence must be [0.0]*6, got {fv['tonnetz']}"
+    )
+    assert fv["spectral_flux"] == 0.0, (
+        f"spectral_flux for silence must be 0.0, got {fv['spectral_flux']}"
+    )
+
+
+def test_impulse_no_nan_inf() -> None:
+    """Edge case: single-spike impulse produces finite values for all 7 new keys."""
+    impulse = np.zeros(CHUNK_SAMPLES, dtype=np.float32)
+    impulse[22050] = 1.0
+
+    fv = extract_features(impulse, sr=SAMPLE_RATE)
+
+    scalar_keys = [
+        "spectral_rolloff_hz",
+        "spectral_flux",
+        "zero_crossing_rate",
+        "harmonic_ratio",
+    ]
+    for key in scalar_keys:
+        assert np.isfinite(fv[key]), f"{key} is not finite for impulse input: {fv[key]}"
+
+    vector_keys = ["spectral_contrast", "mfcc", "tonnetz"]
+    for key in vector_keys:
+        assert all(np.isfinite(x) for x in fv[key]), (
+            f"{key} contains NaN/Inf for impulse input: {fv[key]}"
+        )
+
+
+def test_v1_keys_preserved(sine_440: np.ndarray) -> None:
+    """AC-09: All 13 v1 keys remain present and correct in type/shape after Layer 1 widening."""
+    fv = extract_features(sine_440, sr=SAMPLE_RATE)
+
+    for key in V1_KEYS:
+        assert key in fv, f"v1 key '{key}' missing from FeatureVector after Layer 1 widening"
+
+    assert isinstance(fv["timestamp"], int), f"timestamp must be int, got {type(fv['timestamp'])}"
+    assert isinstance(fv["chunk_index"], int), f"chunk_index must be int, got {type(fv['chunk_index'])}"
+    assert isinstance(fv["source"], str), f"source must be str, got {type(fv['source'])}"
+    assert isinstance(fv["duration_seconds"], float), (
+        f"duration_seconds must be float, got {type(fv['duration_seconds'])}"
+    )
+    assert isinstance(fv["chroma"], list) and len(fv["chroma"]) == 12, (
+        f"chroma must be list of 12, got len={len(fv['chroma'])}"
+    )
+    assert isinstance(fv["bpm"], float), f"bpm must be float, got {type(fv['bpm'])}"
+    assert isinstance(fv["key_pitch_class"], int), (
+        f"key_pitch_class must be int, got {type(fv['key_pitch_class'])}"
+    )
+    assert isinstance(fv["key_mode"], str), f"key_mode must be str, got {type(fv['key_mode'])}"
+    assert isinstance(fv["rms_energy"], float), f"rms_energy must be float, got {type(fv['rms_energy'])}"
+    assert isinstance(fv["spectral_centroid_hz"], float), (
+        f"spectral_centroid_hz must be float, got {type(fv['spectral_centroid_hz'])}"
+    )
+    assert isinstance(fv["onset_strength"], float), (
+        f"onset_strength must be float, got {type(fv['onset_strength'])}"
+    )
+    assert isinstance(fv["mel_spectrogram"], list) and isinstance(fv["mel_spectrogram"][0], list), (
+        "mel_spectrogram must be list of lists"
+    )
+    assert isinstance(fv["waveform_display"], list), (
+        f"waveform_display must be list, got {type(fv['waveform_display'])}"
+    )

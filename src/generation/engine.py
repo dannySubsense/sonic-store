@@ -11,7 +11,8 @@ from typing import Any, Dict, Optional
 
 import numpy as np
 
-from src.generation.prompt import build_prompt
+from src.generation.prompt_v2 import build_prompt_v2
+from src.features.indicators import compute_indicators, HORIZON1_WINDOW_N
 
 FeatureVector = Dict[str, Any]
 
@@ -139,7 +140,9 @@ class GenerationEngine:
                 if ts is not None and ts == self._last_generated_timestamp:
                     continue
 
-                prompt = build_prompt(features)
+                history = self._store.get_history(HORIZON1_WINDOW_N)
+                indicators = compute_indicators(history, window=HORIZON1_WINDOW_N)
+                prompt = build_prompt_v2(features, indicators)
                 clip = self._generate_clip(prompt, features)
                 self.output_queue.put(clip)
                 self._last_generated_timestamp = ts

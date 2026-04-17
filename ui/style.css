@@ -223,3 +223,42 @@ canvas {
 #btn-demo:hover:not(:disabled) {
   background: #2a2a4e;
 }
+
+/* --- Horizon 1 indicator elements --- */
+
+/* Sparkline canvases — inline, compact */
+#sparkline-bpm,
+#sparkline-energy {
+  vertical-align: middle;
+  margin-left: 8px;
+  background-color: #111;
+  border-radius: 2px;
+}
+
+/* Spectral direction arrow — three states */
+#arrow-spectral {
+  font-size: 16px;
+  margin-left: 8px;
+  font-weight: bold;
+  display: inline-block;
+  min-width: 16px;
+  text-align: center;
+}
+.arrow-up      { color: #4fc3f7; }   /* bright accent for brightening */
+.arrow-down    { color: #7986cb; }   /* cooler color for darkening */
+.arrow-neutral { color: #888; }       /* neutral gray for stable / warm-up */
+
+/* Energy regime pill — three states + warmup */
+.regime-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-family: monospace;
+  font-size: 12px;
+  margin-left: 8px;
+  transition: background-color 0.2s ease;
+}
+.regime-rising  { background-color: #2d5a2d; color: #a6d4a6; }  /* muted green */
+.regime-falling { background-color: #5a3d2d; color: #d4a68d; }  /* muted amber */
+.regime-stable  { background-color: #333; color: #888; }         /* neutral gray */
+.regime-warmup  { background-color: #222; color: #666; font-style: italic; }

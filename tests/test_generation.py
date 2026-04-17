@@ -166,6 +166,97 @@ def test_engine_stops_cleanly(monkeypatch):
     assert engine._thread is None
 
 
+def test_generation_v2_prompt_with_history(monkeypatch):
+    """Test 7: With 10 rising-energy entries, GeneratedClip.prompt contains a trajectory descriptor."""
+    monkeypatch.setattr(
+        "src.generation.engine.GenerationEngine._load_model",
+        lambda self: _mock_load(self),
+    )
+    store = DictStore()
+    # Seed 10 entries with monotonically rising rms_energy (0.10 -> 0.55)
+    # and a fixed key so key_stability=1.0 -> "harmonically stable" also fires.
+    # Use distinct timestamps so the engine doesn't skip on dedup.
+    base_ts = int(time.time() * 1000)
+    for i in range(10):
+        fv = _make_feature_vector(
+            rms_energy=round(0.10 + i * 0.05, 2),
+            key_pitch_class=2,
+            key_mode="minor",
+        )
+        fv["timestamp"] = base_ts + i
+        store.write(fv)
+
+    out_q = queue.Queue()
+    engine = GenerationEngine(store=store, output_queue=out_q, interval=0.1)
+    engine.start()
+
+    clip = None
+    try:
+        clip = out_q.get(timeout=10.0)
+    except queue.Empty:
+        pass
+    engine.stop()
+
+    assert clip is not None, "Expected a GeneratedClip in output queue"
+    assert isinstance(clip, GeneratedClip)
+
+    trajectory_phrases = [
+        "building", "rising", "accelerating", "harmonically stable", "brightening",
+    ]
+    prompt_lower = clip.prompt.lower()
+    assert any(phrase in prompt_lower for phrase in trajectory_phrases), (
+        f"Expected at least one trajectory descriptor in prompt, got: {clip.prompt!r}"
+    )
+
+
+def test_generation_v2_cold_start_prompt(monkeypatch):
+    """Test 8: With only 1 history entry (<N=10), prompt uses v1 fallback format."""
+    monkeypatch.setattr(
+        "src.generation.engine.GenerationEngine._load_model",
+        lambda self: _mock_load(self),
+    )
+    store = DictStore()
+    # Single entry: get_latest() is non-None but history length < 10 -> cold-start
+    fv = _make_feature_vector(key_pitch_class=2, key_mode="minor")
+    store.write(fv)
+
+    out_q = queue.Queue()
+    engine = GenerationEngine(store=store, output_queue=out_q, interval=0.1)
+    engine.start()
+
+    clip = None
+    try:
+        clip = out_q.get(timeout=10.0)
+    except queue.Empty:
+        pass
+    engine.stop()
+
+    assert clip is not None, "Expected a GeneratedClip in output queue"
+    assert isinstance(clip, GeneratedClip)
+
+    # v1 format must contain these strings
+    assert "musical accompaniment" in clip.prompt, (
+        f"Expected 'musical accompaniment' in cold-start prompt, got: {clip.prompt!r}"
+    )
+    assert "instrumental" in clip.prompt, (
+        f"Expected 'instrumental' in cold-start prompt, got: {clip.prompt!r}"
+    )
+    # key_pitch_class=2 -> "D", mode="minor"
+    assert "D" in clip.prompt, (
+        f"Expected key name 'D' in cold-start prompt, got: {clip.prompt!r}"
+    )
+
+    # Must NOT contain v2-only trajectory phrases
+    v2_only_phrases = ["building", "fading", "accelerating", "decelerating",
+                       "harmonically stable", "shifting harmonically",
+                       "brightening timbre", "darkening timbre"]
+    for phrase in v2_only_phrases:
+        assert phrase not in clip.prompt, (
+            f"Cold-start prompt should not contain v2 trajectory phrase {phrase!r}, "
+            f"got: {clip.prompt!r}"
+        )
+
+
 # --- Mock helper ---
 
 def _mock_load(engine):

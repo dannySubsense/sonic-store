@@ -76,7 +76,28 @@ Roadmap: `specs/03-ROADMAP.md`. Slices are ordered by dependency.
 | S10 Generation Engine | DONE | src/generation/engine.py |
 | S11 Polish | DONE | GET /status, POST /demo/start, UI model banner |
 
-"DONE" = fully implemented with passing tests. All 11 slices complete. 57 tests passing.
+"DONE" = fully implemented with passing tests. All 11 v1 slices complete.
+
+## Horizon 1 — Derivative Features (COMPLETE)
+
+Spec bundle: `specs/horizon-1/` (5 docs). Roadmap: `specs/horizon-1/04-ROADMAP.md`.
+
+| Slice | Status | Key Files |
+|-------|--------|-----------|
+| H1.S01 Latency Benchmark | DONE | scripts/benchmark_layer1.py, benchmarks/horizon-1-layer-1-latency.md |
+| H1.S02 Layer 1 Widening + Thresholds | DONE | src/features/engine.py (20 keys), src/features/thresholds.py |
+| H1.S03 Layer 2 Indicators | DONE | src/features/indicators.py, tests/test_indicators.py |
+| H1.S04 Prompt Builder v2 | DONE | src/generation/prompt_v2.py, tests/test_prompt_v2.py |
+| H1.S05 GenerationEngine Wiring | DONE | src/generation/engine.py (now uses prompt_v2) |
+| H1.S06 WS Payload + demo_start iterate | DONE | src/api/app.py (Frank's demo fix), tests/test_api.py |
+| H1.S07 Web UI Indicator Elements | DONE | ui/index.html, ui/app.js, ui/style.css (sparklines, pill, arrow) |
+| H1.S08 Polish + Integration | DONE | CLAUDE.md updated; E2E REST verified |
+
+**Test count:** v1 baseline 68 → Horizon 1 total **111 passing** (3 Redis integration deselected). +43 new tests across 5 test files.
+
+**Horizon 1 FeatureVector schema:** 20 keys (13 v1 + 7 new). New keys: `spectral_rolloff_hz`, `spectral_flux`, `spectral_contrast` (7), `zero_crossing_rate`, `mfcc` (13), `harmonic_ratio`, `tonnetz` (6). Layer 2 indicators (9) are derived, not persisted — they live in the WS broadcast payload's `indicators` field.
+
+**Configuration:** `HORIZON1_WINDOW_N` env var (default 10) controls Layer 2 history window. `FLUX_NORM_DIVISOR=203820.109375` in `thresholds.py` is benchmark-calibrated.
 
 ## Store Method Names
 

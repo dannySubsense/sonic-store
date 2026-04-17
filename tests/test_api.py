@@ -183,3 +183,122 @@ def test_websocket_broadcast_via_debug_endpoint() -> None:
         await manager.broadcast({"type": "features", "data": {"bpm": 120}})
 
     asyncio.run(_test())
+
+
+# --- H1.S06: WebSocket payload extension tests ---
+
+import pathlib
+import tempfile
+
+
+def _write_test_wav(path: pathlib.Path, duration_s: float = 10.0, freq: float = 440.0) -> None:
+    """Write a sine-wave WAV of given duration to disk."""
+    samples = int(SAMPLE_RATE * duration_s)
+    t = np.arange(samples, dtype=np.float32) / SAMPLE_RATE
+    audio = np.sin(2 * np.pi * freq * t).astype(np.float32)
+    wavfile.write(str(path), SAMPLE_RATE, audio)
+
+
+@pytest.mark.asyncio
+async def test_ws_payload_includes_indicators_field(monkeypatch, tmp_path):
+    """Test 1: broadcast frames carry the new indicators field.
+
+    Uses demo_start with a temp directory containing one short WAV file,
+    then inspects captured broadcasts. With only 2 chunks, history never
+    reaches N=10 so all indicator payloads should be null.
+    """
+    # Override DEMO_DIR to a temp dir with a 4-second WAV (2 chunks, cold-start)
+    wav_path = tmp_path / "short.wav"
+    _write_test_wav(wav_path, duration_s=4.0)
+    monkeypatch.setattr("src.api.app.DEMO_DIR", tmp_path)
+
+    # Capture broadcasts by patching manager.broadcast
+    from src.api import app as app_module
+    captured = []
+
+    async def capture_broadcast(msg):
+        captured.append(msg)
+
+    monkeypatch.setattr(app_module.manager, "broadcast", capture_broadcast)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post("/demo/start")
+
+    assert resp.status_code == 200
+    # At least one broadcast emitted; all contain "indicators" key
+    feature_broadcasts = [m for m in captured if m.get("type") == "features"]
+    assert len(feature_broadcasts) >= 1
+    for msg in feature_broadcasts:
+        assert "indicators" in msg  # key MUST be present
+    # With only a few chunks, history never reaches N=10 → all null
+    assert all(m["indicators"] is None for m in feature_broadcasts)
+
+
+@pytest.mark.asyncio
+async def test_demo_start_broadcast_includes_indicators_field(monkeypatch, tmp_path):
+    """Test 2: demo_start emits frames that transition from null to populated.
+
+    Using enough WAV content (~30 seconds = 15+ chunks) to cross N=10.
+    Early frames: indicators null. Late frames: populated dict.
+    """
+    # Three 10-second WAVs -> many chunks total -> indicators populate after chunk 10
+    for i in range(3):
+        _write_test_wav(tmp_path / f"demo_{i}.wav", duration_s=10.0, freq=440.0 + i * 100)
+    monkeypatch.setattr("src.api.app.DEMO_DIR", tmp_path)
+
+    from src.api import app as app_module
+    captured = []
+
+    async def capture_broadcast(msg):
+        captured.append(msg)
+
+    monkeypatch.setattr(app_module.manager, "broadcast", capture_broadcast)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post("/demo/start")
+
+    assert resp.status_code == 200
+    feature_broadcasts = [m for m in captured if m.get("type") == "features"]
+    # With 3 files of multiple chunks each, we get many broadcasts
+    assert len(feature_broadcasts) >= 10
+    # Early frames: null (history building up)
+    assert feature_broadcasts[0]["indicators"] is None
+    # By frame 10 or later, indicators should be populated
+    late_frames = feature_broadcasts[10:] if len(feature_broadcasts) > 10 else []
+    assert any(m["indicators"] is not None for m in late_frames), "No populated indicators in late frames"
+    # When populated, it must be a dict with expected keys
+    populated = [m["indicators"] for m in late_frames if m["indicators"] is not None]
+    if populated:
+        first_pop = populated[0]
+        assert "available" in first_pop
+        assert first_pop["available"] is True
+        assert "energy_regime" in first_pop
+        assert "delta_bpm" in first_pop
+
+
+@pytest.mark.asyncio
+async def test_demo_start_response_includes_chunks_processed(monkeypatch, tmp_path):
+    """Test 3: response body has chunks_processed integer per file entry."""
+    _write_test_wav(tmp_path / "demo.wav", duration_s=10.0)
+    monkeypatch.setattr("src.api.app.DEMO_DIR", tmp_path)
+
+    from src.api import app as app_module
+
+    async def noop_broadcast(msg):
+        pass
+
+    monkeypatch.setattr(app_module.manager, "broadcast", noop_broadcast)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post("/demo/start")
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["files_processed"] == 1
+    assert len(body["results"]) == 1
+    r = body["results"][0]
+    assert r["status"] == "ok"
+    assert "chunks_processed" in r
+    assert isinstance(r["chunks_processed"], int)
+    # At minimum one chunk was processed
+    assert r["chunks_processed"] >= 1

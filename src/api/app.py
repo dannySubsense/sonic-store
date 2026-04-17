@@ -16,6 +16,7 @@ from src.api.routes_analyze import router as analyze_router
 from src.api.routes_features import router as features_router
 from src.api.websocket import ConnectionManager
 from src.features.engine import extract_features
+from src.features.indicators import compute_indicators, HORIZON1_WINDOW_N
 from src.store import get_store
 
 UI_DIR = Path(__file__).resolve().parent.parent.parent / "ui"
@@ -159,7 +160,16 @@ async def mic_loop(store) -> None:
         except Exception as e:
             print(f"[mic_loop] Store write error: {e}")
 
-        await manager.broadcast({"type": "features", "data": features})
+        # Compute Layer 2 indicators from the updated history ring
+        history = store.get_history(HORIZON1_WINDOW_N)
+        indicators = compute_indicators(history, window=HORIZON1_WINDOW_N)
+        ind_payload = indicators if indicators.get("available") else None
+
+        await manager.broadcast({
+            "type": "features",
+            "data": features,
+            "indicators": ind_payload,
+        })
 
 
 @app.websocket("/ws/features")
@@ -262,17 +272,37 @@ async def demo_start() -> dict:
 
     store = get_app_store_from_app()
     results = []
+    loop = asyncio.get_event_loop()
 
     for wav_path in wav_files:
         try:
             from src.ingestion.file import load_and_chunk
-            chunks = load_and_chunk(str(wav_path))
-            first_chunk = next(chunks)
-            features = extract_features(first_chunk, source="file")
-            store.write(features)
-            await manager.broadcast({"type": "features", "data": features})
-            results.append({"file": wav_path.name, "status": "ok"})
-            await asyncio.sleep(0.5)
+            chunks_processed = 0
+            for chunk in load_and_chunk(str(wav_path)):
+                # Offload CPU-bound extract_features to thread pool so the
+                # asyncio event loop stays responsive to WS clients during
+                # multi-chunk demo runs (~300ms per chunk, 15+ chunks per run).
+                features = await loop.run_in_executor(
+                    None, lambda c=chunk: extract_features(c, source="file")
+                )
+                store.write(features)
+                # Compute Layer 2 indicators (same pattern as mic_loop)
+                history = store.get_history(HORIZON1_WINDOW_N)
+                indicators = compute_indicators(history, window=HORIZON1_WINDOW_N)
+                ind_payload = indicators if indicators.get("available") else None
+                await manager.broadcast({
+                    "type": "features",
+                    "data": features,
+                    "indicators": ind_payload,
+                })
+                chunks_processed += 1
+                await asyncio.sleep(0.1)  # chunk-level pacing
+            results.append({
+                "file": wav_path.name,
+                "status": "ok",
+                "chunks_processed": chunks_processed,
+            })
+            await asyncio.sleep(0.5)  # file-level pacing
         except Exception as e:
             results.append({"file": wav_path.name, "status": "error", "detail": str(e)})
 

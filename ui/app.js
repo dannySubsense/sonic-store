@@ -3,6 +3,17 @@
 const KEY_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const CHROMA_COLUMNS = 30;
 
+// --- Horizon 1: Sparkline + indicator rendering ---
+
+// SYNC WITH src/features/thresholds.py (per UI spec OQ-UI-02 resolution)
+const SPECTRAL_TREND_BRIGHTENING_THRESHOLD = 50;
+// SYNC WITH src/features/thresholds.py (per UI spec OQ-UI-02 resolution)
+const SPECTRAL_TREND_DARKENING_THRESHOLD = -50;
+
+const SPARKLINE_BUFFER_MAX = 10;
+const bpmBuffer = [];
+const energyBuffer = [];
+
 let ws = null;
 let reconnectDelay = 2000;
 let audioCtx = null;
@@ -31,6 +42,92 @@ const waveformCanvas = document.getElementById('canvas-waveform');
 const waveformCtx = waveformCanvas.getContext('2d');
 const chromaCanvas = document.getElementById('canvas-chroma');
 const chromaCtx = chromaCanvas.getContext('2d');
+
+function appendToSparklineBuffer(buffer, value, maxLen) {
+  if (typeof value !== 'number' || !isFinite(value)) return;
+  buffer.push(value);
+  if (buffer.length > maxLen) buffer.shift();
+}
+
+function drawSparkline(canvasId, buffer, yMin, yMax) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+  if (buffer.length < 1) return;
+  ctx.strokeStyle = '#4f4';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  const xStep = w / SPARKLINE_BUFFER_MAX;
+  for (let i = 0; i < buffer.length; i++) {
+    const x = i * xStep;
+    const normalized = Math.max(0, Math.min(1, (buffer[i] - yMin) / (yMax - yMin)));
+    const y = h - normalized * h;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+}
+
+function updateIndicatorDisplay(indicators) {
+  const arrow = document.getElementById('arrow-spectral');
+  const pill = document.getElementById('regime-pill');
+
+  if (indicators === null || indicators === undefined) {
+    if (arrow) {
+      arrow.textContent = '—';
+      arrow.className = 'arrow-neutral';
+      arrow.title = 'Warming up — need more history';
+    }
+    if (pill) {
+      pill.textContent = 'warming up';
+      pill.className = 'regime-pill regime-warmup';
+    }
+    return;
+  }
+
+  // Spectral direction arrow
+  if (arrow) {
+    const trend = indicators.spectral_trend;
+    if (trend === null || !isFinite(trend)) {
+      arrow.textContent = '—';
+      arrow.className = 'arrow-neutral';
+      arrow.title = 'Warming up — need more history';
+    } else if (trend > SPECTRAL_TREND_BRIGHTENING_THRESHOLD) {
+      arrow.textContent = '↑';
+      arrow.className = 'arrow-up';
+      arrow.title = 'Spectral centroid brightening';
+    } else if (trend < SPECTRAL_TREND_DARKENING_THRESHOLD) {
+      arrow.textContent = '↓';
+      arrow.className = 'arrow-down';
+      arrow.title = 'Spectral centroid darkening';
+    } else {
+      arrow.textContent = '→';
+      arrow.className = 'arrow-neutral';
+      arrow.title = 'Spectral centroid stable';
+    }
+  }
+
+  // Energy regime pill
+  if (pill) {
+    const regime = indicators.energy_regime;
+    if (regime === 'rising') {
+      pill.textContent = 'rising';
+      pill.className = 'regime-pill regime-rising';
+    } else if (regime === 'falling') {
+      pill.textContent = 'falling';
+      pill.className = 'regime-pill regime-falling';
+    } else if (regime === 'stable') {
+      pill.textContent = 'stable';
+      pill.className = 'regime-pill regime-stable';
+    } else {
+      pill.textContent = '—';
+      pill.className = 'regime-pill regime-warmup';
+    }
+  }
+}
 
 // --- WebSocket ---
 
@@ -64,6 +161,14 @@ function connectWebSocket() {
       switch (msg.type) {
         case 'features':
           handleFeatureMessage(msg.data);
+          // Horizon 1: sparklines + indicators
+          appendToSparklineBuffer(bpmBuffer, msg.data.bpm, SPARKLINE_BUFFER_MAX);
+          appendToSparklineBuffer(energyBuffer, msg.data.rms_energy, SPARKLINE_BUFFER_MAX);
+          requestAnimationFrame(() => {
+            drawSparkline('sparkline-bpm', bpmBuffer, 0, 250);
+            drawSparkline('sparkline-energy', energyBuffer, 0, 1);
+          });
+          updateIndicatorDisplay(msg.indicators);
           break;
         case 'generation':
           handleGenerationMessage(msg.data);

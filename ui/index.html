@@ -30,6 +30,7 @@
         <div class="feature-row">
           <span class="feature-label">BPM</span>
           <span id="val-bpm" class="feature-value">--</span>
+          <canvas id="sparkline-bpm" width="70" height="20"></canvas>
         </div>
         <div class="feature-row">
           <span class="feature-label">Key</span>
@@ -39,10 +40,13 @@
           <span class="feature-label">Energy</span>
           <div id="bar-energy"><div id="bar-fill"></div></div>
           <span id="val-energy" class="feature-value">--</span>
+          <canvas id="sparkline-energy" width="70" height="20"></canvas>
+          <span id="regime-pill" class="regime-pill regime-warmup">warming up</span>
         </div>
         <div class="feature-row">
           <span class="feature-label">Spectral</span>
           <span id="val-spectral" class="feature-value">-- Hz</span>
+          <span id="arrow-spectral" class="arrow-neutral" title="Warming up — need more history">—</span>
         </div>
         <div class="feature-row">
           <span class="feature-label">Onset</span>

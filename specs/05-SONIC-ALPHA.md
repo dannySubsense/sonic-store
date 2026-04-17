@@ -345,6 +345,9 @@ All citations refer to research doc `01-AUDIO-DSP-MIR.md` section numbers and bi
 | Regime detection transfer | quant-music-mapping.md | "directly apply to music segmentation" |
 | Feature engineering parallels | quant-music-mapping.md | "similar feature engineering pipelines" |
 
+❯ https://musicinformationretrieval.com/content/1_introduction/about.html       
+
+  https://github.com/musicinformationretrieval/musicinformationretrieval.com 
 ---
 
 *Sonic Alpha framework by: Quincy (Technical Director) + Danny (Composer)*
